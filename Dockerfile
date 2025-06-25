@@ -10,8 +10,7 @@ ADD nginx.manifest.common.conf /opt/openresty/nginx/conf/nginx.manifest.common.c
 ADD nginx.manifest.stale.conf /opt/openresty/nginx/conf/nginx.manifest.stale.conf
 ADD proxy_auth.lua /opt/openresty/nginx/conf/proxy_auth.lua
 
-RUN sed -i 's/dl-cdn.alpinelinux.org\/alpine/alpinelinux.mirrors.ovh.net/g' /etc/apk/repositories \
-  && apk add --no-cache --update bash openssl \
+RUN apk add --no-cache --update bash openssl \
   && mkdir -p /docker_mirror_cache /certs \
   && chmod +x /generate-certificate.sh /entrypoint.sh
 

@@ -1,6 +1,6 @@
 # Build openresty with proxy-connect module
 ```bash
-docker build -f Dockerfile-openresty -t openresty-proxy-connect:1.0.0 .
+docker build -f Dockerfile.openresty -t openresty-proxy-connect:1.0.0 .
 ```
 
 # Build docker registry proxy based on openresty with htpasswd
@@ -8,7 +8,7 @@ docker build -f Dockerfile-openresty -t openresty-proxy-connect:1.0.0 .
 docker build -f Dockerfile -t openresty-docker-registry-proxy:1.0.0 .
 ```
 
-# Run docker registry proxy sample (user1:user1 user2:user2)
+# Run docker registry proxy sample
 ```bash
 docker run --name openresty_docker_registry_proxy --rm -it \
   -p 3128:3128 \
@@ -46,4 +46,4 @@ By default, `generate-certificate.sh` generates a self-signed certificate. You c
 }
 ```
 
-The `insecure-registries` setting should be configured if your registry is using an invalid or self-signed certificate.
+The `insecure-registries` setting should be configured if your proxy is using an invalid or self-signed certificate.

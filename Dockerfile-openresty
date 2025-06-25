@@ -1,0 +1,52 @@
+ARG BASE_IMAGE="alpine:3.22"
+
+FROM ${BASE_IMAGE} AS build
+
+ARG NGX_HTTP_PROXY_CONNECT_MODULE_VERSION=0.0.7
+ARG OPENRESTY_VERSION=1.27.1.2
+ARG PATCH_VERSION=proxy_connect_rewrite_102101.patch
+
+RUN apk add --no-cache --update --virtual .build-deps gcc libc-dev make openssl-dev pcre-dev zlib-dev linux-headers patch curl git perl \
+  && curl -fSL https://github.com/chobits/ngx_http_proxy_connect_module/archive/refs/tags/v${NGX_HTTP_PROXY_CONNECT_MODULE_VERSION}.tar.gz -o ngx_http_proxy_connect_module.tar.gz \
+  && mkdir -p /usr/src \
+  && tar zxC /usr/src/ -f ngx_http_proxy_connect_module.tar.gz \
+  && curl -fSL https://openresty.org/download/openresty-${OPENRESTY_VERSION}.tar.gz -o openresty.tar.gz \
+  && tar zxC /usr/src/ -f openresty.tar.gz \
+  && patch -d /usr/src/openresty-${OPENRESTY_VERSION}/bundle/nginx-${OPENRESTY_VERSION%.*}/ -p 1 < /usr/src/ngx_http_proxy_connect_module-${NGX_HTTP_PROXY_CONNECT_MODULE_VERSION}/patch/${PATCH_VERSION} \
+  && cd /usr/src/openresty-${OPENRESTY_VERSION} \
+  && ./configure --prefix=/opt/openresty \
+    --without-http_ssi_module \
+    --without-http_userid_module \
+    --without-mail_pop3_module \
+    --without-mail_imap_module \
+    --without-mail_smtp_module \
+    --with-http_sub_module \
+    --with-http_ssl_module \
+    --with-http_v2_module \
+    --with-http_gzip_static_module \
+    --with-http_gunzip_module \
+    --with-http_realip_module \
+    --with-http_stub_status_module \
+    --with-select_module \
+    --with-poll_module \
+    --with-file-aio \
+    --with-pcre-jit \
+    --add-module=/usr/src/ngx_http_proxy_connect_module-${NGX_HTTP_PROXY_CONNECT_MODULE_VERSION} \
+  && make install \
+  && strip /opt/openresty/nginx/sbin/nginx \
+  && ln -sf /dev/stdout /opt/openresty/nginx/logs/access.log \
+  && ln -sf /dev/stderr /opt/openresty/nginx/logs/error.log
+
+FROM ${BASE_IMAGE} AS final
+
+RUN apk add --no-cache --update pcre libgcc libpcrecpp
+
+COPY --from=build /opt/openresty /opt/openresty
+
+STOPSIGNAL SIGQUIT
+
+ENV PATH="$PATH:/opt/openresty/luajit/bin:/opt/openresty/nginx/sbin:/opt/openresty/bin"
+
+EXPOSE 80
+
+CMD ["/opt/openresty/bin/openresty", "-g", "daemon off;"]
